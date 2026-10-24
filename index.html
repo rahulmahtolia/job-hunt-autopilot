@@ -120,8 +120,34 @@
       align-items: center;
       justify-content: space-between;
       margin-bottom: 20px;
+      gap: 16px;
+      flex-wrap: wrap;
     }
     .board-header h2 { font-size: 16px; color: #94a3b8; font-weight: 500; }
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .search-box {
+      background: #141625;
+      border: 1px solid #2d3148;
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 12.5px;
+      color: #e2e8f0;
+      outline: none;
+      width: 220px;
+      transition: all 0.15s;
+    }
+    .search-box:focus {
+      border-color: #4f7fff;
+      width: 260px;
+    }
+    .search-box::placeholder {
+      color: #64748b;
+    }
     .filter-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
     .tab {
       padding: 5px 14px;
@@ -421,10 +447,11 @@
       </div>
     </div>
     <div class="api-bar">
-      <button class="btn btn-secondary" onclick="document.getElementById('header-file-input').click()">📁 Load JSON/.mbox</button>
+      <button class="btn btn-secondary" onclick="document.getElementById('header-file-input').click()" aria-label="Upload custom JSON or mbox file">📁 Load JSON/.mbox</button>
+      <button class="btn btn-secondary" onclick="resetToSampleInbox()" title="Reset to default 20 sample emails" aria-label="Reset to sample emails">🔄 Reset Sample</button>
       <input type="file" id="header-file-input" accept=".json,.mbox" style="display:none" onchange="handleFileUpload(this, null)" />
-      <input type="password" id="api-key-input" placeholder="Google AI Studio API key…" />
-      <button class="btn btn-primary" id="analyse-btn" onclick="analyseInbox()">▶ Analyse Inbox</button>
+      <input type="password" id="api-key-input" placeholder="Google AI Studio API key…" aria-label="Google AI Studio API key" />
+      <button class="btn btn-primary" id="analyse-btn" onclick="analyseInbox()" aria-label="Analyse Inbox with Gemini">▶ Analyse Inbox</button>
     </div>
   </header>
 
@@ -459,17 +486,20 @@
         <ul id="scam-list"></ul>
       </div>
 
-      <!-- Filter tabs + table -->
+      <!-- Filter tabs + Search + table -->
       <div class="board-header">
         <h2 id="board-title">All emails</h2>
-        <div class="filter-tabs">
-          <button class="tab active" onclick="filterBy('all', this)">All</button>
-          <button class="tab" onclick="filterBy('applied', this)">Applied</button>
-          <button class="tab" onclick="filterBy('interview', this)">Interview</button>
-          <button class="tab" onclick="filterBy('offer', this)">Offer</button>
-          <button class="tab" onclick="filterBy('rejected', this)">Rejected</button>
-          <button class="tab scam-tab" onclick="filterBy('scam', this)">🚨 Scam</button>
-          <button class="tab" onclick="filterBy('followup', this)">⏰ Follow Up</button>
+        <div class="header-controls">
+          <input type="text" id="search-box" class="search-box" placeholder="🔍 Filter by company or role…" oninput="handleSearch(this.value)" aria-label="Search applications" />
+          <div class="filter-tabs" role="tablist">
+            <button class="tab active" role="tab" aria-selected="true" onclick="filterBy('all', this)">All</button>
+            <button class="tab" role="tab" aria-selected="false" onclick="filterBy('applied', this)">Applied</button>
+            <button class="tab" role="tab" aria-selected="false" onclick="filterBy('interview', this)">Interview</button>
+            <button class="tab" role="tab" aria-selected="false" onclick="filterBy('offer', this)">Offer</button>
+            <button class="tab" role="tab" aria-selected="false" onclick="filterBy('rejected', this)">Rejected</button>
+            <button class="tab scam-tab" role="tab" aria-selected="false" onclick="filterBy('scam', this)">🚨 Scam</button>
+            <button class="tab" role="tab" aria-selected="false" onclick="filterBy('followup', this)">⏰ Follow Up</button>
+          </div>
         </div>
       </div>
 
@@ -601,6 +631,26 @@ let currentInbox = [...DEFAULT_INBOX];
 let currentSourceName = "20 sample emails";
 let results = [];
 let currentFilter = 'all';
+let searchQuery = '';
+
+function resetToSampleInbox() {
+  currentInbox = [...DEFAULT_INBOX];
+  currentSourceName = "20 sample emails";
+  const badge = document.getElementById('source-badge-text');
+  if (badge) badge.textContent = "20 sample emails loaded";
+  const setupLabel = document.getElementById('setup-file-label');
+  if (setupLabel) setupLabel.textContent = "Using default 20 sample emails";
+  if (document.getElementById('api-key-input').value.trim()) {
+    analyseInbox();
+  } else {
+    alert("Reset to default 20 sample emails.");
+  }
+}
+
+function handleSearch(val) {
+  searchQuery = (val || '').trim().toLowerCase();
+  renderTable(currentFilter);
+}
 
 // ── File Upload / Parser (.json & .mbox) ───────────────────────────────────
 function handleFileUpload(input, labelId) {
@@ -905,8 +955,14 @@ function renderDashboard() {
 
 function filterBy(filter, el) {
   currentFilter = filter;
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  el.classList.add('active');
+  document.querySelectorAll('.tab').forEach(t => {
+    t.classList.remove('active');
+    t.setAttribute('aria-selected', 'false');
+  });
+  if (el) {
+    el.classList.add('active');
+    el.setAttribute('aria-selected', 'true');
+  }
   renderTable(filter);
 }
 
@@ -915,13 +971,23 @@ function renderTable(filter) {
   if (filter === 'followup') rows = results.filter(r => r.needs_followup);
   else if (filter !== 'all')  rows = results.filter(r => r.status === filter);
 
+  if (searchQuery) {
+    rows = rows.filter(r => {
+      const company = (r.company || '').toLowerCase();
+      const role = (r.role || '').toLowerCase();
+      const summary = (r.summary || '').toLowerCase();
+      const from = (r.from || '').toLowerCase();
+      return company.includes(searchQuery) || role.includes(searchQuery) || summary.includes(searchQuery) || from.includes(searchQuery);
+    });
+  }
+
   document.getElementById('board-title').textContent =
-    `${rows.length} email${rows.length !== 1 ? 's' : ''} · ${filter === 'all' ? 'all statuses' : filter}`;
+    `${rows.length} email${rows.length !== 1 ? 's' : ''} · ${filter === 'all' ? 'all statuses' : filter}${searchQuery ? ` (matching "${searchQuery}")` : ''}`;
 
   const tbody = document.getElementById('email-table-body');
 
   if (rows.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state">No emails in this category.</div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state">No emails match your filter or search criteria.</div></td></tr>`;
     return;
   }
 
