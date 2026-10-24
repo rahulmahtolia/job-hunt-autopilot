@@ -1,10 +1,10 @@
 # 🎯 Job Hunt Autopilot
 
-> **Hackathon build — Google AI Stack**  
-> Classifies a job-seeker's inbox using Gemini, flags scams in red, and surfaces follow-up reminders.
+> **Track every application. Catch every fake offer.**
+> Built for post-layoff job hunts: classifies inboxes into tracking stages, catches fraudulent fee/phishing offers in red, and automates 7-day follow-up reminders.
 
 ## Stack
-- **Gemini 2.0 Flash** via Google AI Studio API (browser-direct, no backend)
+- **Gemini 3.8 Flash** (`gemini-3.8-flash`) via Google AI Studio API (browser-direct, no backend)
 - **Firebase Hosting** (optional, one command deploy)
 - Pure HTML/CSS/JS — zero npm, zero build step
 
@@ -20,10 +20,10 @@ firebase deploy
 ```
 
 ## How it works
-1. User enters Google AI Studio API key
-2. All 20 emails are sent to Gemini in a single batch prompt
-3. Gemini returns structured JSON: status + scam flag + reasons + follow-up flag
-4. Dashboard renders: stat cards, scam alert panel, filterable table
+1. User enters Google AI Studio API key (or loads custom JSON / `.mbox` file).
+2. Emails are sent to Gemini in a single classification pipeline prompt.
+3. Gemini returns structured JSON: status (`applied`, `interview`, `rejected`, `offer`, `scam`) + scam red-flag reasons + follow-up triggers.
+4. Dashboard renders: real-time stat cards, dedicated Scam Alert panel, and filterable table.
 
 ## Email statuses
 | Status | Meaning |
@@ -44,6 +44,6 @@ Emails marked `applied` with no update after **7 days** get a ⏰ **Follow up no
 - Unrealistic salary ("₹50,000/day, no experience")
 - Urgency + payment deadline combo
 
-## Sample inbox
-20 pre-loaded realistic emails covering all 5 categories including 4 scams.
-Swap out `INBOX` in the JS with a real `.mbox` parser or Firebase Firestore collection to go live.
+## Sample inbox & Custom Input
+- **Default Sample:** 20 pre-loaded realistic emails covering all 5 categories including 4 scams.
+- **Custom Input:** Directly upload any `.json` or `.mbox` file via the UI without backend or Gmail login.
