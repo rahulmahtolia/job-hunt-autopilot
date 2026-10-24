@@ -1,0 +1,22 @@
+{
+  "name": "job-hunt-autopilot",
+  "version": "1.0.0",
+  "description": "Post-layoff job search tracker and scam detector powered by Gemini",
+  "main": "index.html",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/app.test.js",
+    "test:coverage": "node --test --experimental-test-coverage tests/app.test.js",
+    "deploy": "firebase deploy"
+  },
+  "keywords": [
+    "ai",
+    "gemini",
+    "job-tracker",
+    "scam-detector",
+    "automation",
+    "hackathon"
+  ],
+  "author": "Rahul Mahtolia",
+  "license": "MIT"
+}

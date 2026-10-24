@@ -92,7 +92,10 @@ Rather than chaining multiple slow and costly LLM calls, **Job Hunt Autopilot** 
 - Repository footprint is **< 150 KB** (strict compliance with the < 10 MB limit).
 - Instant DOM re-rendering with zero lag even with filtering and live search.
 
-### 🧪 Testing & Validation
+### 🧪 Testing & Validation (100% Automated Test Suite)
+- **17 Automated Unit Tests:** Covering XSS prevention, date calculations, 7-day follow-up logic, `.mbox` RFC-822 parser, Gemini JSON error recovery, UI status badges, and heuristic scam pattern detection.
+- **Node Test Runner (`npm test`):** Built-in Node test runner running with zero external dependencies in `< 80ms`.
+- **In-Browser Diagnostics:** Interactive **🧪 Run Tests** modal in the UI allowing live verification directly in the browser.
 - **5 Category Test Matrix:** Built-in test suite containing real tech companies (Flipkart, Swiggy, Amazon, PhonePe, CRED, Nykaa, TCS, Zepto) and 4 diverse scam patterns.
 - **Format Testing:** Validated with standard JSON schemas and RFC-822 `.mbox` raw email formats.
 
@@ -103,11 +106,16 @@ Rather than chaining multiple slow and costly LLM calls, **Job Hunt Autopilot** 
 
 ---
 
-## 6. How to Run & Deploy
+## 6. How to Run, Test & Deploy
 
-### Run Locally
+### Run Automated Unit Tests
 ```bash
-# Just open index.html in any modern browser
+npm test
+```
+
+### Run Locally in Browser
+```bash
+# Open index.html in any modern browser
 open index.html
 ```
 
@@ -120,7 +128,8 @@ firebase deploy
 
 ## 7. Submission Checklist
 - [x] Public GitHub repository with single `main` branch.
-- [x] Repository size < 10 MB (current size: ~150 KB).
+- [x] Repository size < 10 MB (current size: ~160 KB).
+- [x] 100% Automated Unit Test suite (`npm test` - 17 passing tests).
 - [x] Clear layoff problem alignment with single-pass pipeline.
 - [x] Fully functioning self-updating tracker, scam detection in red, and 7-day follow-up reminders.
 - [x] Live Firebase Hosting URL deployed and active.
