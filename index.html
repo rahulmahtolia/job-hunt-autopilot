@@ -96,9 +96,41 @@
     /* ── Spinner / status ── */
     #status-msg {
       text-align: center;
-      padding: 60px 20px;
+      padding: 40px 20px;
       color: #7c8db5;
       font-size: 15px;
+    }
+    .error-box {
+      background: #1a0f0f;
+      border: 1px solid #7f1d1d;
+      border-radius: 14px;
+      padding: 24px 28px;
+      max-width: 540px;
+      margin: 20px auto;
+      text-align: center;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+    .error-box .error-title {
+      color: #f87171;
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .error-box .error-desc {
+      color: #fca5a5;
+      font-size: 13.5px;
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+    .error-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
     }
     .spinner {
       display: inline-block;
@@ -911,8 +943,16 @@ ${JSON.stringify(emailsJson, null, 2)}`;
     renderDashboard();
 
   } catch (e) {
-    document.getElementById('status-msg').innerHTML =
-      `❌ Error: ${e.message}<br/><small style="color:#4a5568">Check your API key and try again.</small>`;
+    document.getElementById('status-msg').innerHTML = `
+      <div class="error-box">
+        <div class="error-title"><span>⚠️</span> Analysis Request Failed</div>
+        <div class="error-desc">${esc(e.message || 'Server load error or network issue.')}</div>
+        <div class="error-actions">
+          <button class="btn btn-primary" onclick="analyseInbox()">🔄 Retry Analysis</button>
+          <button class="btn btn-secondary" onclick="document.getElementById('api-key-input').focus(); document.getElementById('api-key-input').select();">✏️ Check / Edit API Key</button>
+        </div>
+      </div>
+    `;
   } finally {
     btn.disabled = false;
     btn.textContent = '▶ Analyse Inbox';
