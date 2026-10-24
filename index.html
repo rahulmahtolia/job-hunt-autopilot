@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Job Hunt Autopilot</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: #1a1d2e;
+      border-bottom: 1px solid #2d3148;
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .logo { display: flex; align-items: center; gap: 10px; }
+    .logo-icon {
+      width: 32px; height: 32px; background: linear-gradient(135deg, #4f7fff, #a855f7);
+      border-radius: 8px; display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+    }
+    .logo h1 { font-size: 18px; font-weight: 700; color: #fff; }
+    .logo span { font-size: 13px; color: #7c8db5; font-weight: 400; margin-left: 4px; }
+
+    .api-bar { display: flex; align-items: center; gap: 10px; }
+    .api-bar input {
+      background: #0f1117;
+      border: 1px solid #2d3148;
+      border-radius: 8px;
+      color: #e2e8f0;
+      padding: 8px 14px;
+      font-size: 13px;
+      width: 280px;
+      outline: none;
+    }
+    .api-bar input:focus { border-color: #4f7fff; }
+    .api-bar input::placeholder { color: #4a5568; }
+
+    .btn {
+      padding: 8px 18px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.15s;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #4f7fff, #a855f7);
+      color: #fff;
+    }
+    .btn-primary:hover { opacity: 0.88; transform: translateY(-1px); }
+    .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+    /* ── Stats bar ── */
+    .stats-bar {
+      display: flex;
+      gap: 16px;
+      padding: 20px 32px;
+      flex-wrap: wrap;
+    }
+    .stat-card {
+      background: #1a1d2e;
+      border: 1px solid #2d3148;
+      border-radius: 12px;
+      padding: 14px 20px;
+      min-width: 120px;
+      flex: 1;
+    }
+    .stat-card .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: #7c8db5; margin-bottom: 6px; }
+    .stat-card .value { font-size: 28px; font-weight: 700; }
+    .stat-card.total .value  { color: #e2e8f0; }
+    .stat-card.applied .value { color: #60a5fa; }
+    .stat-card.interview .value { color: #a78bfa; }
+    .stat-card.offer .value   { color: #34d399; }
+    .stat-card.rejected .value { color: #94a3b8; }
+    .stat-card.scam .value    { color: #f87171; }
+    .stat-card.followup .value { color: #fbbf24; }
+
+    /* ── Main content ── */
+    main { padding: 0 32px 40px; }
+
+    /* ── Spinner / status ── */
+    #status-msg {
+      text-align: center;
+      padding: 60px 20px;
+      color: #7c8db5;
+      font-size: 15px;
+    }
+    .spinner {
+      display: inline-block;
+      width: 22px; height: 22px;
+      border: 3px solid #2d3148;
+      border-top-color: #4f7fff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-right: 10px;
+      vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Board ── */
+    #board { display: none; }
+
+    .board-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .board-header h2 { font-size: 16px; color: #94a3b8; font-weight: 500; }
+    .filter-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+    .tab {
+      padding: 5px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid #2d3148;
+      background: transparent;
+      color: #7c8db5;
+      transition: all 0.15s;
+    }
+    .tab.active, .tab:hover { background: #2d3148; color: #e2e8f0; }
+    .tab.scam-tab.active { background: #3b0f0f; border-color: #f87171; color: #f87171; }
+
+    /* ── Table ── */
+    .table-wrap {
+      background: #1a1d2e;
+      border: 1px solid #2d3148;
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+    }
+    thead th {
+      background: #141625;
+      padding: 12px 16px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      color: #7c8db5;
+      border-bottom: 1px solid #2d3148;
+    }
+    tbody tr {
+      border-bottom: 1px solid #1e2235;
+      transition: background 0.1s;
+    }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: #1e2235; }
+    tbody tr.scam-row { background: #1a0f0f; }
+    tbody tr.scam-row:hover { background: #220f0f; }
+    tbody tr.followup-row { background: #1a160a; }
+
+    td { padding: 13px 16px; vertical-align: top; }
+
+    .company { font-weight: 600; color: #e2e8f0; }
+    .role { font-size: 12px; color: #7c8db5; margin-top: 2px; }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+    }
+    .badge-applied   { background: #1e3a5f; color: #60a5fa; }
+    .badge-interview { background: #2e1e5f; color: #a78bfa; }
+    .badge-offer     { background: #0f3d2e; color: #34d399; }
+    .badge-rejected  { background: #1e2235; color: #94a3b8; }
+    .badge-scam      { background: #3b0f0f; color: #f87171; border: 1px solid #7f1d1d; }
+
+    .scam-flag {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      background: #2a0f0f;
+      border: 1px solid #7f1d1d;
+      border-radius: 8px;
+      padding: 8px 12px;
+      margin-top: 4px;
+      font-size: 12px;
+      color: #fca5a5;
+      line-height: 1.5;
+    }
+    .scam-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+
+    .followup-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: #3b2a0a;
+      color: #fbbf24;
+      border: 1px solid #78450f;
+      border-radius: 6px;
+      padding: 3px 9px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .date-text { color: #7c8db5; font-size: 12px; }
+    .days-ago  { color: #4a5568; font-size: 11px; margin-top: 2px; }
+
+    /* ── Empty states ── */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #4a5568;
+      font-size: 14px;
+    }
+
+    /* ── Scam summary panel ── */
+    #scam-panel {
+      display: none;
+      background: #1a0f0f;
+      border: 1px solid #7f1d1d;
+      border-radius: 14px;
+      padding: 20px 24px;
+      margin-bottom: 20px;
+    }
+    #scam-panel h3 { color: #f87171; font-size: 15px; margin-bottom: 12px; }
+    #scam-panel ul { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+    #scam-panel li {
+      font-size: 13px;
+      color: #fca5a5;
+      padding-left: 18px;
+      position: relative;
+      line-height: 1.5;
+    }
+    #scam-panel li::before { content: "⚠"; position: absolute; left: 0; }
+
+    /* ── Tooltip for summary ── */
+    .summary-cell { max-width: 320px; }
+    .summary-text {
+      color: #94a3b8;
+      font-size: 12.5px;
+      line-height: 1.5;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    /* ── Setup screen ── */
+    #setup-screen {
+      max-width: 560px;
+      margin: 80px auto;
+      background: #1a1d2e;
+      border: 1px solid #2d3148;
+      border-radius: 16px;
+      padding: 40px;
+      text-align: center;
+    }
+    #setup-screen .setup-icon { font-size: 48px; margin-bottom: 16px; }
+    #setup-screen h2 { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+    #setup-screen p  { color: #7c8db5; font-size: 14px; margin-bottom: 24px; line-height: 1.6; }
+    #setup-screen input {
+      width: 100%;
+      background: #0f1117;
+      border: 1px solid #2d3148;
+      border-radius: 10px;
+      color: #e2e8f0;
+      padding: 12px 16px;
+      font-size: 14px;
+      outline: none;
+      margin-bottom: 14px;
+    }
+    #setup-screen input:focus { border-color: #4f7fff; }
+    #setup-screen .btn { width: 100%; padding: 12px; font-size: 15px; }
+    .hint { font-size: 12px; color: #4a5568; margin-top: 10px; }
+    .hint a { color: #4f7fff; }
+  </style>
+</head>
+<body>
+
+<!-- Setup screen shown if no API key -->
+<div id="setup-screen">
+  <div class="setup-icon">🎯</div>
+  <h2>Job Hunt Autopilot</h2>
+  <p>Paste your <strong>Google AI Studio API key</strong> to analyse your inbox.<br/>
+     All processing happens in your browser — nothing is stored.</p>
+  <input type="password" id="setup-key" placeholder="AIza…" autocomplete="off" />
+  <button class="btn btn-primary" onclick="startWithKey()">Analyse Inbox →</button>
+  <p class="hint">Get a free key at <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a></p>
+</div>
+
+<!-- Main app (hidden until key entered) -->
+<div id="app" style="display:none">
+  <header>
+    <div class="logo">
+      <div class="logo-icon">🎯</div>
+      <h1>Job Hunt Autopilot <span>powered by Gemini</span></h1>
+    </div>
+    <div class="api-bar">
+      <input type="password" id="api-key-input" placeholder="Google AI Studio API key…" />
+      <button class="btn btn-primary" id="analyse-btn" onclick="analyseInbox()">▶ Analyse Inbox</button>
+    </div>
+  </header>
+
+  <!-- Stats -->
+  <div class="stats-bar" id="stats-bar" style="display:none">
+    <div class="stat-card total">   <div class="label">Total</div>    <div class="value" id="s-total">0</div></div>
+    <div class="stat-card applied"> <div class="label">Applied</div>  <div class="value" id="s-applied">0</div></div>
+    <div class="stat-card interview"><div class="label">Interview</div><div class="value" id="s-interview">0</div></div>
+    <div class="stat-card offer">   <div class="label">Offer</div>    <div class="value" id="s-offer">0</div></div>
+    <div class="stat-card rejected"><div class="label">Rejected</div> <div class="value" id="s-rejected">0</div></div>
+    <div class="stat-card scam">    <div class="label">🚨 Scam</div>  <div class="value" id="s-scam">0</div></div>
+    <div class="stat-card followup"><div class="label">Follow Up</div><div class="value" id="s-followup">0</div></div>
+  </div>
+
+  <main>
+    <div id="status-msg">Enter your API key and click <strong>Analyse Inbox</strong> to start.</div>
+
+    <div id="board">
+      <!-- Scam alert panel -->
+      <div id="scam-panel">
+        <h3>🚨 Scam Alerts Detected</h3>
+        <ul id="scam-list"></ul>
+      </div>
+
+      <!-- Filter tabs + table -->
+      <div class="board-header">
+        <h2 id="board-title">All emails</h2>
+        <div class="filter-tabs">
+          <button class="tab active" onclick="filterBy('all', this)">All</button>
+          <button class="tab" onclick="filterBy('applied', this)">Applied</button>
+          <button class="tab" onclick="filterBy('interview', this)">Interview</button>
+          <button class="tab" onclick="filterBy('offer', this)">Offer</button>
+          <button class="tab" onclick="filterBy('rejected', this)">Rejected</button>
+          <button class="tab scam-tab" onclick="filterBy('scam', this)">🚨 Scam</button>
+          <button class="tab" onclick="filterBy('followup', this)">⏰ Follow Up</button>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Company / Role</th>
+              <th>Status</th>
+              <th>Summary</th>
+              <th>Date</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="email-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+// ── Sample inbox (20 emails) ──────────────────────────────────────────────
+const INBOX = [
+  {
+    id: 1, from: "careers@flipkart.com", subject: "Your application for SDE-2 has been received",
+    date: "2024-06-01",
+    body: "Hi Rahul, thank you for applying to the Software Development Engineer - 2 position at Flipkart. Your application is under review and our team will get back to you within 10 business days. Application ID: FK-2024-78231."
+  },
+  {
+    id: 2, from: "no-reply@naukri.com", subject: "Interview invitation – Razorpay (Backend Engineer)",
+    date: "2024-06-03",
+    body: "Congratulations! Razorpay is inviting you to interview for the Backend Engineer role. Please schedule your slot at the link below. Round 1 will be a 45-min DSA interview via HackerRank. Link: https://razorpay.interview.io/schedule/abc123"
+  },
+  {
+    id: 3, from: "hr@infosys.com", subject: "Application Status Update – Infosys",
+    date: "2024-06-04",
+    body: "Dear Candidate, after careful consideration, we regret to inform you that we will not be moving forward with your application for the Systems Engineer role at this time. We appreciate your interest in Infosys and encourage you to apply for future openings."
+  },
+  {
+    id: 4, from: "recruiter.india.jobs2024@gmail.com", subject: "JOB OFFER!! Work from home – Rs 50,000/day NO EXPERIENCE",
+    date: "2024-06-05",
+    body: "CONGRATULATIONS! You have been selected for a Data Entry job. Earn Rs 50,000 per day working from home! No experience required. To activate your account and start earning, pay a one-time registration fee of Rs 2,500 via UPI to finalize-jobs@paytm.com. Hurry, limited seats! Reply with your Aadhaar number and bank details to confirm."
+  },
+  {
+    id: 5, from: "talent@swiggy.in", subject: "Offer Letter – Product Manager, Swiggy",
+    date: "2024-06-06",
+    body: "Dear Rahul, we are delighted to extend an offer for the position of Product Manager at Swiggy. CTC: ₹28 LPA. Please find the attached offer letter and complete the background verification form by June 12, 2024. Your joining date is June 24, 2024."
+  },
+  {
+    id: 6, from: "careers@meesho.io", subject: "We received your application – Data Scientist",
+    date: "2024-06-01",
+    body: "Hi, thanks for applying to the Data Scientist position at Meesho! Our hiring team will review your profile and reach out if your experience aligns with our requirements. The process typically takes 2–3 weeks."
+  },
+  {
+    id: 7, from: "noreply@linkedin.com", subject: "Your application to Zomato was sent",
+    date: "2024-05-28",
+    body: "Your application for the Android Engineer role at Zomato has been submitted. Zomato typically responds within 2 weeks. You can track your application status in LinkedIn Jobs."
+  },
+  {
+    id: 8, from: "hr.recruitment@wipro-global-jobs.net", subject: "URGENT: Job Offer from Wipro – Immediate Joining",
+    date: "2024-06-07",
+    body: "Dear Applicant, Wipro Ltd has shortlisted your profile for the IT Consultant role. Salary: 12 LPA. To proceed you must pay Rs 3,000 as a security deposit for your ID card and laptop. Send via Google Pay to 9876543210. Please share a copy of your Aadhaar and PAN card by tonight."
+  },
+  {
+    id: 9, from: "sourcing@phonepe.com", subject: "PhonePe – SDE Interview Round 2 Scheduled",
+    date: "2024-06-08",
+    body: "Hi Rahul, your Round 2 (System Design) interview with PhonePe is scheduled for June 14, 2024 at 11:00 AM IST. The interview will be conducted via Google Meet. Link: meet.google.com/xyz-abc-def. Interviewer: Sanjay Mehta, Staff Engineer."
+  },
+  {
+    id: 10, from: "careers@paytm.com", subject: "Application Acknowledged – Senior Frontend Engineer",
+    date: "2024-05-30",
+    body: "Thank you for your interest in the Senior Frontend Engineer role at Paytm. Your application (Ref: PT-FE-2024-441) has been received. Our talent team reviews applications on a rolling basis."
+  },
+  {
+    id: 11, from: "hiring@amazon.in", subject: "Next Steps – SDE-II at Amazon India",
+    date: "2024-06-09",
+    body: "Hi Rahul, thank you for completing the online assessment for SDE-II at Amazon. We were impressed with your performance and would like to invite you for the virtual onsite loop (4 rounds). Please reply to this email with your availability for the week of June 17–21."
+  },
+  {
+    id: 12, from: "jobs_india_hiring@outlook.com", subject: "Selected for Remote Job – Google Partner Program",
+    date: "2024-06-07",
+    body: "Congratulations! You have been selected for the Google Work From Home Partner Program. Earn Rs 80,000/month. To register, pay Rs 1,999 training fee to UPI ID google-wfh-india@ybl. After payment send screenshot to this number on WhatsApp: 8800112233. Your Google employee ID will be issued within 24 hours."
+  },
+  {
+    id: 13, from: "noreply@greenhouse.io", subject: "Ola – Application Update",
+    date: "2024-06-02",
+    body: "Dear Rahul, thank you for your interest in the ML Engineer position at Ola. After reviewing your application, we have decided not to move forward at this time. We'll keep your resume on file for future opportunities."
+  },
+  {
+    id: 14, from: "recruit@byju.com", subject: "Interview Invite – Curriculum Developer",
+    date: "2024-06-05",
+    body: "Dear Rahul, we are pleased to invite you for an interview for the Curriculum Developer position at BYJU'S. Please join the video call on June 13 at 3 PM via Zoom. Meeting ID: 812 3456 7890, Passcode: byjus24."
+  },
+  {
+    id: 15, from: "noreply@freshteam.com", subject: "Freshworks – Application Received for SDE-3",
+    date: "2024-06-03",
+    body: "Hi Rahul, we've received your application for the Software Development Engineer - 3 role at Freshworks. The hiring team will be in touch if your background is a match. Expected timeline: 3 weeks."
+  },
+  {
+    id: 16, from: "career@tcs.com", subject: "TCS – Regret Letter",
+    date: "2024-06-06",
+    body: "Dear Rahul Mahtolia, we regret to inform you that your application for the Digital Specialist Engineer role at TCS has not been shortlisted for the next round. Thank you for the time you invested in our process."
+  },
+  {
+    id: 17, from: "hr@cred.club", subject: "You're shortlisted! – CRED Backend Engineer",
+    date: "2024-06-10",
+    body: "Hey Rahul! Great news – you've been shortlisted for the Backend Engineer role at CRED. We'll kick things off with a take-home assignment (3 hours, Golang). Please complete it by June 13. Link: cred.io/assignment/r4h2024"
+  },
+  {
+    id: 18, from: "placement.officer99@gmail.com", subject: "Accenture Final Selection – Pay Processing Fee",
+    date: "2024-06-09",
+    body: "Dear Student, you have been FINALLY SELECTED for Accenture India through off-campus drive. Salary 8 LPA. To process your offer letter and police verification, deposit Rs 4,500 as processing fee via NEFT to: A/c 8823001122, IFSC: HDFC0001234, Name: Accenture HR Services. Submit transaction ID to confirm your seat."
+  },
+  {
+    id: 19, from: "talent@zepto.com", subject: "Application received – iOS Engineer at Zepto",
+    date: "2024-05-29",
+    body: "Hi Rahul, thanks for applying for the iOS Engineer position at Zepto. We're currently reviewing applications and will be in touch within 2 weeks. We receive a large number of applications so we appreciate your patience."
+  },
+  {
+    id: 20, from: "noreply@workday.com", subject: "Nykaa – Interview Round 1 Confirmed",
+    date: "2024-06-10",
+    body: "Your Round 1 interview for the Full Stack Engineer role at Nykaa has been confirmed for June 15, 2024 at 2:00 PM IST. The format will be a live coding session (45 minutes) on CoderPad. Your interviewer will reach out on LinkedIn."
+  }
+];
+
+// ── State ─────────────────────────────────────────────────────────────────
+let results = [];
+let currentFilter = 'all';
+
+// ── Setup ─────────────────────────────────────────────────────────────────
+function startWithKey() {
+  const key = document.getElementById('setup-key').value.trim();
+  if (!key) { alert('Please enter your API key.'); return; }
+  document.getElementById('setup-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('api-key-input').value = key;
+  analyseInbox();
+}
+
+// ── Main analysis ─────────────────────────────────────────────────────────
+async function analyseInbox() {
+  const key = document.getElementById('api-key-input').value.trim();
+  if (!key) { alert('Please enter your Google AI Studio API key.'); return; }
+
+  const btn = document.getElementById('analyse-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Analysing…';
+
+  document.getElementById('board').style.display = 'none';
+  document.getElementById('stats-bar').style.display = 'none';
+  document.getElementById('scam-panel').style.display = 'none';
+  document.getElementById('status-msg').style.display = 'block';
+  document.getElementById('status-msg').innerHTML =
+    '<span class="spinner"></span> Gemini is reading your inbox…';
+
+  const today = new Date('2024-06-11'); // fixed demo "today"
+
+  const emailsJson = INBOX.map(e => ({
+    id: e.id,
+    from: e.from,
+    subject: e.subject,
+    date: e.date,
+    body: e.body.substring(0, 400)
+  }));
+
+  const prompt = `You are an expert job application tracker and scam detector.
+
+Analyse each email in the inbox below and return a JSON array with one object per email.
+
+For each email return:
+{
+  "id": <same id>,
+  "company": "<company name, infer from email/subject>",
+  "role": "<job role>",
+  "status": "<one of: applied | interview | offer | rejected | scam>",
+  "scam": <true | false>,
+  "scam_reasons": "<if scam, list the specific red flags seen; else empty string>",
+  "summary": "<1 sentence summary of the email>",
+  "needs_followup": <true if status is 'applied' and email date is more than 7 days before 2024-06-11, else false>
+}
+
+Rules:
+- Mark as "scam" if you see: requests for money/fees/deposits, asks for Aadhaar/PAN/bank details, gmail/outlook sender pretending to be a company, unrealistic salary promises, urgency + payment combo.
+- "applied" = acknowledgement of application received.
+- "interview" = interview scheduled or invited.
+- "offer" = formal job offer.
+- "rejected" = rejection letter.
+- needs_followup = true only for "applied" status emails older than 7 days from 2024-06-11.
+
+Return ONLY valid JSON array, no markdown fences, no explanation.
+
+INBOX:
+${JSON.stringify(emailsJson, null, 2)}`;
+
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.1, maxOutputTokens: 4096 }
+        })
+      }
+    );
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error?.message || `HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    let raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+    // strip markdown fences if Gemini adds them anyway
+    raw = raw.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
+
+    results = JSON.parse(raw);
+
+    // merge original email data
+    results = results.map(r => {
+      const orig = INBOX.find(e => e.id === r.id) || {};
+      return { ...orig, ...r };
+    });
+
+    renderDashboard();
+
+  } catch (e) {
+    document.getElementById('status-msg').innerHTML =
+      `❌ Error: ${e.message}<br/><small style="color:#4a5568">Check your API key and try again.</small>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '▶ Analyse Inbox';
+  }
+}
+
+// ── Render ─────────────────────────────────────────────────────────────────
+function renderDashboard() {
+  document.getElementById('status-msg').style.display = 'none';
+  document.getElementById('stats-bar').style.display = 'flex';
+  document.getElementById('board').style.display = 'block';
+
+  // Stats
+  const counts = { applied:0, interview:0, offer:0, rejected:0, scam:0, followup:0 };
+  results.forEach(r => {
+    if (counts[r.status] !== undefined) counts[r.status]++;
+    if (r.needs_followup) counts.followup++;
+  });
+  document.getElementById('s-total').textContent    = results.length;
+  document.getElementById('s-applied').textContent  = counts.applied;
+  document.getElementById('s-interview').textContent= counts.interview;
+  document.getElementById('s-offer').textContent    = counts.offer;
+  document.getElementById('s-rejected').textContent = counts.rejected;
+  document.getElementById('s-scam').textContent     = counts.scam;
+  document.getElementById('s-followup').textContent = counts.followup;
+
+  // Scam panel
+  const scams = results.filter(r => r.scam);
+  const scamPanel = document.getElementById('scam-panel');
+  if (scams.length > 0) {
+    scamPanel.style.display = 'block';
+    const ul = document.getElementById('scam-list');
+    ul.innerHTML = scams.map(s =>
+      `<li><strong>${s.company}</strong> (${s.subject || s.from}) — ${s.scam_reasons}</li>`
+    ).join('');
+  }
+
+  renderTable(currentFilter);
+}
+
+function filterBy(filter, el) {
+  currentFilter = filter;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderTable(filter);
+}
+
+function renderTable(filter) {
+  let rows = results;
+  if (filter === 'followup') rows = results.filter(r => r.needs_followup);
+  else if (filter !== 'all')  rows = results.filter(r => r.status === filter);
+
+  document.getElementById('board-title').textContent =
+    `${rows.length} email${rows.length !== 1 ? 's' : ''} · ${filter === 'all' ? 'all statuses' : filter}`;
+
+  const tbody = document.getElementById('email-table-body');
+
+  if (rows.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state">No emails in this category.</div></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = rows.map(r => {
+    const isScam    = r.scam;
+    const isFollowup = r.needs_followup && !isScam;
+    const rowClass  = isScam ? 'scam-row' : isFollowup ? 'followup-row' : '';
+
+    const badge = badgeHtml(r.status);
+
+    const scamDetail = isScam
+      ? `<div class="scam-flag"><span class="scam-icon">🚨</span><span>${r.scam_reasons}</span></div>`
+      : '';
+
+    const action = isScam
+      ? `<span style="color:#f87171;font-size:12px;font-weight:600;">DO NOT RESPOND</span>`
+      : isFollowup
+      ? `<span class="followup-badge">⏰ Follow up now</span>`
+      : r.status === 'interview' || r.status === 'offer'
+      ? `<span style="color:#34d399;font-size:12px;font-weight:600;">Action required</span>`
+      : `<span style="color:#4a5568;font-size:12px;">—</span>`;
+
+    const daysAgo = daysDiff(r.date);
+
+    return `<tr class="${rowClass}">
+      <td>
+        <div class="company">${esc(r.company || r.from)}</div>
+        <div class="role">${esc(r.role || '')}</div>
+      </td>
+      <td>${badge}</td>
+      <td class="summary-cell">
+        <div class="summary-text">${esc(r.summary || '')}</div>
+        ${scamDetail}
+      </td>
+      <td>
+        <div class="date-text">${r.date || ''}</div>
+        <div class="days-ago">${daysAgo} days ago</div>
+      </td>
+      <td>${action}</td>
+    </tr>`;
+  }).join('');
+}
+
+function badgeHtml(status) {
+  const map = {
+    applied:   ['badge-applied',   '📨 Applied'],
+    interview: ['badge-interview', '📅 Interview'],
+    offer:     ['badge-offer',     '🎉 Offer'],
+    rejected:  ['badge-rejected',  '✖ Rejected'],
+    scam:      ['badge-scam',      '🚨 Scam'],
+  };
+  const [cls, label] = map[status] || ['badge-applied', status];
+  return `<span class="badge ${cls}">${label}</span>`;
+}
+
+function daysDiff(dateStr) {
+  const today = new Date('2024-06-11');
+  const d = new Date(dateStr);
+  return Math.floor((today - d) / 86400000);
+}
+
+function esc(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+</script>
+</body>
+</html>
